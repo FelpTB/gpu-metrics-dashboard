@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     console.error('Error in API route:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const errorCode = error instanceof Error && 'code' in error ? (error as any).code : undefined
+    const errorStack = error instanceof Error ? error.stack : undefined
     
     // Retornar mais detalhes para debug em produção
     return NextResponse.json(
@@ -41,7 +42,10 @@ export async function GET(request: Request) {
         error: 'Failed to fetch metrics',
         details: errorMessage,
         code: errorCode,
-        hasDatabaseUrl: !!process.env.DATABASE_URL
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        databaseUrlLength: process.env.DATABASE_URL?.length || 0,
+        // Incluir stack em produção para debug
+        stack: errorStack?.split('\n').slice(0, 5).join('\n')
       },
       { status: 500 }
     )
