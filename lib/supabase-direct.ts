@@ -55,7 +55,15 @@ export async function fetchMetricsDirect(limit: number = 100): Promise<LLMMetric
     })) as LLMMetrics[]
   } catch (error) {
     console.error('Error fetching metrics:', error)
-    throw error
+    // Adicionar mais contexto ao erro
+    const dbError = error instanceof Error ? error : new Error(String(error))
+    if (dbError.message.includes('does not exist')) {
+      throw new Error(`Table or schema not found: ${dbError.message}`)
+    }
+    if (dbError.message.includes('connection') || dbError.message.includes('timeout')) {
+      throw new Error(`Database connection failed: ${dbError.message}`)
+    }
+    throw dbError
   }
 }
 
@@ -83,6 +91,14 @@ export async function fetchLatestMetricDirect(): Promise<LLMMetrics | null> {
     } as LLMMetrics
   } catch (error) {
     console.error('Error fetching latest metric:', error)
-    throw error
+    // Adicionar mais contexto ao erro
+    const dbError = error instanceof Error ? error : new Error(String(error))
+    if (dbError.message.includes('does not exist')) {
+      throw new Error(`Table or schema not found: ${dbError.message}`)
+    }
+    if (dbError.message.includes('connection') || dbError.message.includes('timeout')) {
+      throw new Error(`Database connection failed: ${dbError.message}`)
+    }
+    throw dbError
   }
 }

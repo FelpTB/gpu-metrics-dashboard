@@ -10,7 +10,11 @@ export async function GET(request: Request) {
     if (!process.env.DATABASE_URL) {
       console.error('DATABASE_URL não está configurada')
       return NextResponse.json(
-        { error: 'DATABASE_URL environment variable is not set', details: 'Configure DATABASE_URL in .env.local' },
+        { 
+          error: 'DATABASE_URL environment variable is not set', 
+          details: 'Configure DATABASE_URL in Railway Variables',
+          hasDatabaseUrl: false
+        },
         { status: 500 }
       )
     }
@@ -29,13 +33,15 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error in API route:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const errorStack = error instanceof Error ? error.stack : undefined
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : undefined
     
+    // Retornar mais detalhes para debug em produção
     return NextResponse.json(
       { 
         error: 'Failed to fetch metrics',
         details: errorMessage,
-        ...(process.env.NODE_ENV === 'development' && { stack: errorStack })
+        code: errorCode,
+        hasDatabaseUrl: !!process.env.DATABASE_URL
       },
       { status: 500 }
     )
