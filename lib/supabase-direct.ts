@@ -46,12 +46,31 @@ function getPool() {
 export async function fetchMetricsDirect(limit: number = 100): Promise<LLMMetrics[]> {
   const client = getPool()
   try {
-    const result = await client.query(
-      `SELECT * FROM "busca_fornecedor"."LLM-Metrics" 
-       ORDER BY created_at DESC 
-       LIMIT $1`,
-      [limit]
-    )
+    // Tentar diferentes variações da query
+    let result
+    try {
+      result = await client.query(
+        `SELECT * FROM "busca_fornecedor"."LLM-Metrics" 
+         ORDER BY created_at DESC 
+         LIMIT $1`,
+        [limit]
+      )
+    } catch (firstError: any) {
+      // Se falhar, tentar sem aspas no schema
+      console.error('First query attempt failed:', firstError.message)
+      try {
+        result = await client.query(
+          `SELECT * FROM busca_fornecedor."LLM-Metrics" 
+           ORDER BY created_at DESC 
+           LIMIT $1`,
+          [limit]
+        )
+      } catch (secondError: any) {
+        console.error('Second query attempt failed:', secondError.message)
+        throw new Error(`Query failed: ${firstError.message}. Tried alternative: ${secondError.message}`)
+      }
+    }
+    
     // Converter strings numéricas para números
     return result.rows.map(row => ({
       ...row,
@@ -67,24 +86,49 @@ export async function fetchMetricsDirect(limit: number = 100): Promise<LLMMetric
     console.error('Error fetching metrics:', error)
     // Adicionar mais contexto ao erro
     const dbError = error instanceof Error ? error : new Error(String(error))
-    if (dbError.message.includes('does not exist')) {
-      throw new Error(`Table or schema not found: ${dbError.message}`)
+    const errorMessage = dbError.message
+    
+    // Mensagens de erro mais específicas
+    if (errorMessage.includes('does not exist') || errorMessage.includes('relation')) {
+      throw new Error(`Table or schema not found. Error: ${errorMessage}`)
     }
-    if (dbError.message.includes('connection') || dbError.message.includes('timeout')) {
-      throw new Error(`Database connection failed: ${dbError.message}`)
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout') || errorMessage.includes('ECONNREFUSED')) {
+      throw new Error(`Database connection failed. Error: ${errorMessage}`)
     }
-    throw dbError
+    if (errorMessage.includes('password') || errorMessage.includes('authentication')) {
+      throw new Error(`Authentication failed. Check DATABASE_URL credentials. Error: ${errorMessage}`)
+    }
+    
+    throw new Error(`Database error: ${errorMessage}`)
   }
 }
 
 export async function fetchLatestMetricDirect(): Promise<LLMMetrics | null> {
   const client = getPool()
   try {
-    const result = await client.query(
-      `SELECT * FROM "busca_fornecedor"."LLM-Metrics" 
-       ORDER BY created_at DESC 
-       LIMIT 1`
-    )
+    // Tentar diferentes variações da query
+    let result
+    try {
+      result = await client.query(
+        `SELECT * FROM "busca_fornecedor"."LLM-Metrics" 
+         ORDER BY created_at DESC 
+         LIMIT 1`
+      )
+    } catch (firstError: any) {
+      // Se falhar, tentar sem aspas no schema
+      console.error('First query attempt failed:', firstError.message)
+      try {
+        result = await client.query(
+          `SELECT * FROM busca_fornecedor."LLM-Metrics" 
+           ORDER BY created_at DESC 
+           LIMIT 1`
+        )
+      } catch (secondError: any) {
+        console.error('Second query attempt failed:', secondError.message)
+        throw new Error(`Query failed: ${firstError.message}. Tried alternative: ${secondError.message}`)
+      }
+    }
+    
     if (!result.rows[0]) return null
     
     const row = result.rows[0]
@@ -103,12 +147,19 @@ export async function fetchLatestMetricDirect(): Promise<LLMMetrics | null> {
     console.error('Error fetching latest metric:', error)
     // Adicionar mais contexto ao erro
     const dbError = error instanceof Error ? error : new Error(String(error))
-    if (dbError.message.includes('does not exist')) {
-      throw new Error(`Table or schema not found: ${dbError.message}`)
+    const errorMessage = dbError.message
+    
+    // Mensagens de erro mais específicas
+    if (errorMessage.includes('does not exist') || errorMessage.includes('relation')) {
+      throw new Error(`Table or schema not found. Error: ${errorMessage}`)
     }
-    if (dbError.message.includes('connection') || dbError.message.includes('timeout')) {
-      throw new Error(`Database connection failed: ${dbError.message}`)
+    if (errorMessage.includes('connection') || errorMessage.includes('timeout') || errorMessage.includes('ECONNREFUSED')) {
+      throw new Error(`Database connection failed. Error: ${errorMessage}`)
     }
-    throw dbError
+    if (errorMessage.includes('password') || errorMessage.includes('authentication')) {
+      throw new Error(`Authentication failed. Check DATABASE_URL credentials. Error: ${errorMessage}`)
+    }
+    
+    throw new Error(`Database error: ${errorMessage}`)
   }
 }
