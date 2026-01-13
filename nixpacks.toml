@@ -1,0 +1,15 @@
+# Configuração NIXPACKS para Railway
+# Este arquivo é opcional - Railway detecta Next.js automaticamente
+# Mas pode ser útil para configurações customizadas
+
+[phases.setup]
+nixPkgs = ["nodejs-18_x"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
