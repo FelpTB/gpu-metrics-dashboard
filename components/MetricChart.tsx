@@ -54,13 +54,25 @@ export function MetricChart({
   yAxisDomain = ['auto', 'auto'],
   errors = []
 }: MetricChartProps) {
-  // Debug: Log erros recebidos
-  if (errors.length > 0 && typeof window !== 'undefined') {
-    console.log(`[${title}] Errors received:`, errors.length, errors.map(e => ({
-      time: e.time,
-      timestamp: e.timestamp instanceof Date ? e.timestamp.toISOString() : e.timestamp,
-      count: e.count
-    })))
+  // Debug: Log erros recebidos e dados
+  if (typeof window !== 'undefined') {
+    console.log(`[${title}] Chart data:`, {
+      dataPoints: data.length,
+      errorsReceived: errors.length,
+      errors: errors.map(e => ({
+        time: e.time,
+        timestamp: e.timestamp instanceof Date ? e.timestamp.toISOString() : String(e.timestamp),
+        count: e.count
+      })),
+      firstMetric: data[0] ? {
+        created_at: data[0].created_at,
+        timestamp: new Date(data[0].created_at || '').toISOString()
+      } : null,
+      lastMetric: data[data.length - 1] ? {
+        created_at: data[data.length - 1].created_at,
+        timestamp: new Date(data[data.length - 1].created_at || '').toISOString()
+      } : null
+    })
   }
   
   // Preparar dados do gráfico com informações de erro
