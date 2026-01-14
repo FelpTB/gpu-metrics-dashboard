@@ -54,21 +54,44 @@ export function MetricChart({
   yAxisDomain = ['auto', 'auto'],
   errors = []
 }: MetricChartProps) {
+  // Debug: Log erros recebidos
+  if (errors.length > 0 && typeof window !== 'undefined') {
+    console.log(`[${title}] Errors received:`, errors.length, errors.map(e => ({
+      time: e.time,
+      timestamp: e.timestamp instanceof Date ? e.timestamp.toISOString() : e.timestamp,
+      count: e.count
+    })))
+  }
+  
   // Preparar dados do gráfico com informações de erro
   const chartData = data
     .map(item => {
       const itemTime = item.created_at ? format(new Date(item.created_at), 'HH:mm:ss') : ''
-      const itemTimestamp = item.created_at ? new Date(item.created_at).getTime() : 0
+      // Usar UTC para evitar problemas de fuso horário
+      const itemDate = item.created_at ? new Date(item.created_at) : new Date()
+      const itemTimestamp = itemDate.getTime()
       
-      // Verificar se há erro neste timestamp (dentro de 5 segundos)
+      // Verificar se há erro neste timestamp (dentro de 60 segundos para compensar diferenças de coleta)
       const relatedError = errors.find(error => {
-        // Garantir que timestamp seja um Date
+        // Garantir que timestamp seja um Date e usar UTC
         const errorTimestamp = error.timestamp instanceof Date 
           ? error.timestamp 
           : new Date(error.timestamp)
         const errorTime = errorTimestamp.getTime()
         const timeDiff = Math.abs(itemTimestamp - errorTime) / 1000 // em segundos
-        return timeDiff <= 5
+        
+        // Debug para primeiro erro encontrado
+        if (timeDiff <= 60 && typeof window !== 'undefined') {
+          console.log(`[${title}] Error matched:`, {
+            metricTime: itemTime,
+            errorTime: format(errorTimestamp, 'HH:mm:ss'),
+            timeDiff: timeDiff.toFixed(2) + 's',
+            errorCount: error.count
+          })
+        }
+        
+        // Aumentar janela para 60 segundos para capturar erros próximos
+        return timeDiff <= 60
       })
       
       return {
@@ -92,7 +115,8 @@ export function MetricChart({
       const errorTime = errorTimestamp.getTime()
       return !chartData.some(point => {
         const timeDiff = Math.abs(point.timestamp - errorTime) / 1000
-        return timeDiff <= 5
+        // Usar mesma janela de 60 segundos
+        return timeDiff <= 60
       })
     })
     .map(error => {

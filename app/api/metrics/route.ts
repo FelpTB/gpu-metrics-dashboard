@@ -30,7 +30,27 @@ export async function GET(request: Request) {
 
     const metrics = await fetchMetricsDirect(limit)
     const errors = await fetchErrorsDirect(1000)
-    const groupedErrors = groupErrorsByTime(errors, 5) // Agrupar erros dentro de 5 segundos
+    // Agrupar erros dentro de 5 segundos, mas mostrar todos os erros no período das métricas
+    const groupedErrors = groupErrorsByTime(errors, 5)
+    
+    // Log para debug (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Errors found:', errors.length)
+      console.log('Grouped errors:', groupedErrors.length)
+      if (groupedErrors.length > 0) {
+        console.log('First error:', {
+          time: groupedErrors[0].time,
+          timestamp: groupedErrors[0].timestamp,
+          count: groupedErrors[0].count
+        })
+      }
+      if (metrics.length > 0) {
+        console.log('First metric:', {
+          created_at: metrics[0].created_at,
+          timestamp: new Date(metrics[0].created_at || '').toISOString()
+        })
+      }
+    }
     
     return NextResponse.json({
       metrics,

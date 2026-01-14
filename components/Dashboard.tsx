@@ -21,11 +21,31 @@ export function Dashboard() {
       // Verificar se a resposta tem formato novo (com errors) ou antigo (só metrics)
       if (data.metrics && data.errors) {
         setMetrics(data.metrics)
-        // Converter timestamps de string para Date
-        const convertedErrors = data.errors.map((error: any) => ({
-          ...error,
-          timestamp: error.timestamp ? new Date(error.timestamp) : new Date()
-        }))
+        // Converter timestamps de string para Date (garantir UTC)
+        const convertedErrors = data.errors.map((error: any) => {
+          let timestamp: Date
+          if (error.timestamp) {
+            // Se já é Date, usar diretamente, senão converter string para Date
+            timestamp = error.timestamp instanceof Date 
+              ? error.timestamp 
+              : new Date(error.timestamp)
+          } else {
+            timestamp = new Date()
+          }
+          
+          return {
+            ...error,
+            timestamp
+          }
+        })
+        
+        // Debug: Log erros convertidos
+        console.log('Errors converted:', convertedErrors.length, convertedErrors.map(e => ({
+          time: e.time,
+          timestamp: e.timestamp.toISOString(),
+          count: e.count
+        })))
+        
         setErrors(convertedErrors)
         if (data.metrics.length > 0) {
           setLatestMetric(data.metrics[0])
