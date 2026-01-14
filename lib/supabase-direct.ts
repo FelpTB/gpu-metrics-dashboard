@@ -43,12 +43,9 @@ function getPool() {
       throw new Error('DATABASE_URL must start with postgresql:// or postgres://')
     }
     
-    // Detectar se é banco local (localhost) para desabilitar SSL
-    const isLocalDatabase = connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
-    
     pool = new Pool({
       connectionString,
-      ssl: isLocalDatabase ? false : {
+      ssl: {
         rejectUnauthorized: false
       },
       // Configurações adicionais para melhor estabilidade
