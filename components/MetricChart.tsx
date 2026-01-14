@@ -105,19 +105,33 @@ export function MetricChart({
     })
     .reverse() // Reverter para mostrar do mais antigo para o mais recente
 
+  // Obter range de tempo das métricas
+  const metricTimes = chartData.map(p => p.timestamp).filter(t => t > 0)
+  const minMetricTime = metricTimes.length > 0 ? Math.min(...metricTimes) : 0
+  const maxMetricTime = metricTimes.length > 0 ? Math.max(...metricTimes) : Date.now()
+  
   // Criar linhas de referência para erros que não estão próximos de pontos de dados
+  // Mas que estão dentro do período das métricas (com margem de 5 minutos)
   const errorReferenceLines = errors
     .filter(error => {
-      // Verificar se o erro já está próximo de algum ponto de dados
       const errorTimestamp = error.timestamp instanceof Date 
         ? error.timestamp 
         : new Date(error.timestamp)
       const errorTime = errorTimestamp.getTime()
-      return !chartData.some(point => {
+      
+      // Verificar se o erro está próximo de algum ponto de dados
+      const isNearPoint = chartData.some(point => {
         const timeDiff = Math.abs(point.timestamp - errorTime) / 1000
-        // Usar mesma janela de 60 segundos
         return timeDiff <= 60
       })
+      
+      // Se não está próximo, verificar se está dentro do período das métricas (com margem de 5 minutos)
+      if (!isNearPoint && minMetricTime > 0) {
+        const margin = 5 * 60 * 1000 // 5 minutos em ms
+        return errorTime >= (minMetricTime - margin) && errorTime <= (maxMetricTime + margin)
+      }
+      
+      return !isNearPoint
     })
     .map(error => {
       const errorTimestamp = error.timestamp instanceof Date 
@@ -126,7 +140,8 @@ export function MetricChart({
       return {
         time: format(errorTimestamp, 'HH:mm:ss'),
         count: error.count,
-        message: error.errors[0]?.error_message
+        message: error.errors[0]?.error_message,
+        timestamp: errorTimestamp
       }
     })
 
@@ -179,21 +194,30 @@ export function MetricChart({
           />
           <Legend />
           {/* Linhas de referência para erros isolados */}
-          {errorReferenceLines.map((error, index) => (
-            <ReferenceLine
-              key={`error-ref-${index}`}
-              x={error.time}
-              stroke="#ef4444"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              label={{ 
-                value: error.count > 1 ? `${error.count} erros` : 'Erro', 
-                position: 'top',
-                fill: '#ef4444',
-                fontSize: 10
-              }}
-            />
-          ))}
+          {errorReferenceLines.map((error, index) => {
+            // Calcular posição Y baseada no valor médio do gráfico
+            const values = chartData.map(d => d.value).filter(v => !isNaN(v))
+            const avgValue = values.length > 0 
+              ? values.reduce((a, b) => a + b, 0) / values.length 
+              : 0
+            
+            return (
+              <ReferenceLine
+                key={`error-ref-${index}`}
+                x={error.time}
+                stroke="#ef4444"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                label={{ 
+                  value: error.count > 1 ? `${error.count} erros` : 'Erro', 
+                  position: 'top',
+                  fill: '#ef4444',
+                  fontSize: 10,
+                  offset: 5
+                }}
+              />
+            )
+          })}
           <Line 
             type="monotone" 
             dataKey="value" 
