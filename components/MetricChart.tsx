@@ -1,6 +1,6 @@
 'use client'
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Dot } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Dot, Cell } from 'recharts'
 import { format } from 'date-fns'
 import { LLMMetrics, GroupedError } from '@/lib/supabase-direct'
 
@@ -94,12 +94,6 @@ export function MetricChart({
       message: error.errors[0]?.error_message
     }))
 
-  // Calcular valor médio para posicionar linhas de referência
-  const values = chartData.map(d => d.value).filter(v => !isNaN(v))
-  const avgValue = values.length > 0 
-    ? values.reduce((a, b) => a + b, 0) / values.length 
-    : 0
-
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-lg font-semibold text-gray-800">{title}</h3>
@@ -126,7 +120,7 @@ export function MetricChart({
               borderRadius: '8px'
             }}
             formatter={(value: number, name: string, props: any) => {
-              if (props.payload.hasError) {
+              if (props.payload?.hasError) {
                 return [
                   <div key="error-tooltip">
                     <p className="font-semibold text-red-800">
@@ -170,13 +164,15 @@ export function MetricChart({
             stroke={color} 
             strokeWidth={2}
             dot={(props: any) => {
-              if (props.payload.hasError) {
+              // Sempre retornar um elemento válido
+              if (props.payload?.hasError) {
                 return <ErrorDot {...props} />
               }
-              return false
+              // Retornar um dot invisível quando não há erro
+              return <Dot r={0} fill="transparent" />
             }}
             activeDot={(props: any) => {
-              if (props.payload.hasError) {
+              if (props.payload?.hasError) {
                 return <ErrorDot {...props} />
               }
               return <Dot r={4} fill={color} />
