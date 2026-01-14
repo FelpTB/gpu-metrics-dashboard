@@ -39,7 +39,11 @@ cp .env.example .env
 
 Edite o arquivo `.env` e adicione sua connection string:
 ```
-DATABASE_URL=postgresql://postgres.hccolkrnyrxcbxuuajwq:1d8vUnUlDXT7cmox@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+# Para banco local:
+DATABASE_URL=postgresql://postgres:abcadvise@2026@localhost:5432/postgres
+
+# Para banco Supabase (exemplo):
+# DATABASE_URL=postgresql://postgres.hccolkrnyrxcbxuuajwq:1d8vUnUlDXT7cmox@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
 ```
 
 ## 🏃 Executando Localmente
@@ -81,7 +85,11 @@ npm start
    - No painel do Railway, vá em "Variables"
    - Adicione a variável `DATABASE_URL` com sua connection string:
      ```
-     DATABASE_URL=postgresql://postgres.hccolkrnyrxcbxuuajwq:1d8vUnUlDXT7cmox@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+     # Para banco local:
+     DATABASE_URL=postgresql://postgres:abcadvise@2026@localhost:5432/postgres
+     
+     # Para banco Supabase (exemplo):
+     # DATABASE_URL=postgresql://postgres.hccolkrnyrxcbxuuajwq:1d8vUnUlDXT7cmox@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
      ```
 
 3. **Configure o build:**
@@ -107,7 +115,7 @@ railway init
 
 4. **Adicione a variável de ambiente:**
 ```bash
-railway variables set DATABASE_URL="postgresql://postgres.hccolkrnyrxcbxuuajwq:1d8vUnUlDXT7cmox@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+railway variables set DATABASE_URL="postgresql://postgres:abcadvise@2026@localhost:5432/postgres"
 ```
 
 5. **Faça o deploy:**
