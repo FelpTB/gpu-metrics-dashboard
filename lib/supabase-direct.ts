@@ -232,6 +232,7 @@ function formatTime(date: Date): string {
 }
 
 // Função para agrupar erros próximos no tempo (dentro de 5 segundos)
+// Agrupa apenas erros que estão dentro de 5 segundos do último erro do grupo
 export function groupErrorsByTime(errors: VLLMError[], timeWindowSeconds: number = 5): GroupedError[] {
   if (errors.length === 0) return []
   
@@ -242,15 +243,17 @@ export function groupErrorsByTime(errors: VLLMError[], timeWindowSeconds: number
   
   const grouped: GroupedError[] = []
   let currentGroup: VLLMError[] = [sortedErrors[0]]
-  let groupStartTime = new Date(sortedErrors[0].created_at)
+  let lastErrorTime = new Date(sortedErrors[0].created_at)
   
   for (let i = 1; i < sortedErrors.length; i++) {
     const errorTime = new Date(sortedErrors[i].created_at)
-    const timeDiff = (errorTime.getTime() - groupStartTime.getTime()) / 1000 // em segundos
+    // Comparar com o último erro do grupo, não com o primeiro
+    const timeDiff = (errorTime.getTime() - lastErrorTime.getTime()) / 1000 // em segundos
     
     if (timeDiff <= timeWindowSeconds) {
-      // Adicionar ao grupo atual
+      // Adicionar ao grupo atual se estiver dentro de 5 segundos do último erro
       currentGroup.push(sortedErrors[i])
+      lastErrorTime = errorTime // Atualizar o tempo do último erro
     } else {
       // Finalizar grupo atual e começar novo
       const firstError = currentGroup[0]
@@ -262,7 +265,7 @@ export function groupErrorsByTime(errors: VLLMError[], timeWindowSeconds: number
       })
       
       currentGroup = [sortedErrors[i]]
-      groupStartTime = errorTime
+      lastErrorTime = errorTime
     }
   }
   

@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     const metrics = await fetchMetricsDirect(limit)
     // Buscar erros do mesmo período das métricas (com margem de 10 minutos)
     const errors = await fetchErrorsDirect(1000)
-    // Agrupar erros dentro de 5 segundos, mas mostrar todos os erros no período das métricas
+    // Agrupar apenas erros que estão dentro de 5 segundos uns dos outros
     const groupedErrors = groupErrorsByTime(errors, 5)
     
     // Log para debug (apenas em desenvolvimento)
