@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { LLMMetrics } from '@/lib/supabase-direct'
+import { LLMMetrics, GroupedError } from '@/lib/supabase-direct'
 import { MetricCard } from './MetricCard'
 import { MetricChart } from './MetricChart'
 
 export function Dashboard() {
   const [metrics, setMetrics] = useState<LLMMetrics[]>([])
   const [latestMetric, setLatestMetric] = useState<LLMMetrics | null>(null)
+  const [errors, setErrors] = useState<GroupedError[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -16,9 +17,21 @@ export function Dashboard() {
       const response = await fetch('/api/metrics?limit=100')
       if (!response.ok) throw new Error('Failed to fetch metrics')
       const data = await response.json()
-      setMetrics(data)
-      if (data.length > 0) {
-        setLatestMetric(data[0])
+      
+      // Verificar se a resposta tem formato novo (com errors) ou antigo (só metrics)
+      if (data.metrics && data.errors) {
+        setMetrics(data.metrics)
+        setErrors(data.errors)
+        if (data.metrics.length > 0) {
+          setLatestMetric(data.metrics[0])
+        }
+      } else {
+        // Formato antigo (backward compatibility)
+        setMetrics(data)
+        setErrors([])
+        if (data.length > 0) {
+          setLatestMetric(data[0])
+        }
       }
       setError(null)
     } catch (err) {
@@ -198,18 +211,21 @@ export function Dashboard() {
               color="#ef4444"
               unit="%"
               yAxisDomain={[0, 100]}
+              errors={errors}
             />
             <MetricChart
               data={metrics}
               dataKey="num_requests_running"
               title="Requests Running"
               color="#3b82f6"
+              errors={errors}
             />
             <MetricChart
               data={metrics}
               dataKey="num_requests_waiting"
               title="Requests Waiting"
               color="#f59e0b"
+              errors={errors}
             />
             <MetricChart
               data={metrics}
@@ -217,6 +233,7 @@ export function Dashboard() {
               title="Average Queue Time (s)"
               color="#8b5cf6"
               unit="s"
+              errors={errors}
             />
             <MetricChart
               data={metrics}
@@ -225,6 +242,7 @@ export function Dashboard() {
               color="#10b981"
               unit="%"
               yAxisDomain={[0, 100]}
+              errors={errors}
             />
             <MetricChart
               data={metrics}
@@ -233,6 +251,7 @@ export function Dashboard() {
               color="#6366f1"
               unit="%"
               yAxisDomain={[0, 100]}
+              errors={errors}
             />
           </div>
         </div>

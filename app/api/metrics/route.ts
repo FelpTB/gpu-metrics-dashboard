@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchMetricsDirect, fetchLatestMetricDirect } from '@/lib/supabase-direct'
+import { fetchMetricsDirect, fetchLatestMetricDirect, fetchErrorsDirect, groupErrorsByTime } from '@/lib/supabase-direct'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -29,7 +29,13 @@ export async function GET(request: Request) {
     }
 
     const metrics = await fetchMetricsDirect(limit)
-    return NextResponse.json(metrics)
+    const errors = await fetchErrorsDirect(1000)
+    const groupedErrors = groupErrorsByTime(errors, 5) // Agrupar erros dentro de 5 segundos
+    
+    return NextResponse.json({
+      metrics,
+      errors: groupedErrors
+    })
   } catch (error) {
     console.error('Error in API route:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'

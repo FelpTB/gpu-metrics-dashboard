@@ -17,6 +17,20 @@ export interface LLMMetrics {
   cpu_percent: number
 }
 
+export interface VLLMError {
+  id: number | string
+  created_at: string
+  error: boolean
+  error_message: string | null
+}
+
+export interface GroupedError {
+  time: string
+  timestamp: Date
+  count: number
+  errors: VLLMError[]
+}
+
 function getPool() {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL
