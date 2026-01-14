@@ -278,6 +278,15 @@ export function Dashboard() {
               yAxisDomain={[0, 100]}
               errors={errors}
             />
+            <MetricChart
+              data={metrics}
+              dataKey="cpu_percent"
+              title="CPU Utilization (%)"
+              color="#ec4899"
+              unit="%"
+              yAxisDomain={[0, 100]}
+              errors={errors}
+            />
           </div>
         </div>
       </div>
