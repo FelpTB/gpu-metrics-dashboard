@@ -177,3 +177,105 @@ export async function fetchLatestMetricDirect(): Promise<LLMMetrics | null> {
     throw new Error(`Database error: ${errorMessage}`)
   }
 }
+
+// Função para buscar erros da tabela result_vllm_test
+export async function fetchErrorsDirect(limit: number = 1000): Promise<VLLMError[]> {
+  const client = getPool()
+  try {
+    let result
+    try {
+      result = await client.query(
+        `SELECT id, created_at, error, error_message 
+         FROM "busca_fornecedor"."result_vllm_test" 
+         WHERE error = true 
+         ORDER BY created_at DESC 
+         LIMIT $1`,
+        [limit]
+      )
+    } catch (firstError: any) {
+      console.error('First error query attempt failed:', firstError.message)
+      try {
+        result = await client.query(
+          `SELECT id, created_at, error, error_message 
+           FROM busca_fornecedor.result_vllm_test 
+           WHERE error = true 
+           ORDER BY created_at DESC 
+           LIMIT $1`,
+          [limit]
+        )
+      } catch (secondError: any) {
+        console.error('Second error query attempt failed:', secondError.message)
+        // Não lançar erro, apenas retornar array vazio se falhar
+        return []
+      }
+    }
+    
+    return result.rows.map(row => ({
+      id: typeof row.id === 'string' ? parseInt(row.id) : row.id,
+      created_at: row.created_at,
+      error: row.error,
+      error_message: row.error_message
+    })) as VLLMError[]
+  } catch (error) {
+    console.error('Error fetching errors:', error)
+    // Não lançar erro, apenas retornar array vazio se falhar
+    return []
+  }
+}
+
+// Helper function para formatar data
+function formatTime(date: Date): string {
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  const seconds = date.getSeconds().toString().padStart(2, '0')
+  return `${hours}:${minutes}:${seconds}`
+}
+
+// Função para agrupar erros próximos no tempo (dentro de 5 segundos)
+export function groupErrorsByTime(errors: VLLMError[], timeWindowSeconds: number = 5): GroupedError[] {
+  if (errors.length === 0) return []
+  
+  // Ordenar por data
+  const sortedErrors = [...errors].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
+  
+  const grouped: GroupedError[] = []
+  let currentGroup: VLLMError[] = [sortedErrors[0]]
+  let groupStartTime = new Date(sortedErrors[0].created_at)
+  
+  for (let i = 1; i < sortedErrors.length; i++) {
+    const errorTime = new Date(sortedErrors[i].created_at)
+    const timeDiff = (errorTime.getTime() - groupStartTime.getTime()) / 1000 // em segundos
+    
+    if (timeDiff <= timeWindowSeconds) {
+      // Adicionar ao grupo atual
+      currentGroup.push(sortedErrors[i])
+    } else {
+      // Finalizar grupo atual e começar novo
+      const firstError = currentGroup[0]
+      grouped.push({
+        time: formatTime(new Date(firstError.created_at)),
+        timestamp: new Date(firstError.created_at),
+        count: currentGroup.length,
+        errors: currentGroup
+      })
+      
+      currentGroup = [sortedErrors[i]]
+      groupStartTime = errorTime
+    }
+  }
+  
+  // Adicionar último grupo
+  if (currentGroup.length > 0) {
+    const firstError = currentGroup[0]
+    grouped.push({
+      time: formatTime(new Date(firstError.created_at)),
+      timestamp: new Date(firstError.created_at),
+      count: currentGroup.length,
+      errors: currentGroup
+    })
+  }
+  
+  return grouped
+}
