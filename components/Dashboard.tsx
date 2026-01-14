@@ -40,7 +40,7 @@ export function Dashboard() {
         })
         
         // Debug: Log erros convertidos
-        console.log('Errors converted:', convertedErrors.length, convertedErrors.map(e => ({
+        console.log('Errors converted:', convertedErrors.length, convertedErrors.map((e: GroupedError) => ({
           time: e.time,
           timestamp: e.timestamp.toISOString(),
           count: e.count

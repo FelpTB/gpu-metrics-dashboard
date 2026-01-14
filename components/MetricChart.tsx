@@ -122,8 +122,9 @@ export function MetricChart({
   const minMetricTime = metricTimes.length > 0 ? Math.min(...metricTimes) : 0
   const maxMetricTime = metricTimes.length > 0 ? Math.max(...metricTimes) : Date.now()
   
-  // Criar linhas de referência para erros que não estão próximos de pontos de dados
-  // Mas que estão dentro do período das métricas (com margem de 5 minutos)
+  // Criar linhas de referência para TODOS os erros que estão dentro do período das métricas
+  // (com margem de 10 minutos antes e depois)
+  const margin = 10 * 60 * 1000 // 10 minutos em ms
   const errorReferenceLines = errors
     .filter(error => {
       const errorTimestamp = error.timestamp instanceof Date 
@@ -131,19 +132,32 @@ export function MetricChart({
         : new Date(error.timestamp)
       const errorTime = errorTimestamp.getTime()
       
-      // Verificar se o erro está próximo de algum ponto de dados
+      // Verificar se o erro está próximo de algum ponto de dados (já será mostrado como ponto)
       const isNearPoint = chartData.some(point => {
         const timeDiff = Math.abs(point.timestamp - errorTime) / 1000
         return timeDiff <= 60
       })
       
-      // Se não está próximo, verificar se está dentro do período das métricas (com margem de 5 minutos)
-      if (!isNearPoint && minMetricTime > 0) {
-        const margin = 5 * 60 * 1000 // 5 minutos em ms
-        return errorTime >= (minMetricTime - margin) && errorTime <= (maxMetricTime + margin)
+      // Se não está próximo, verificar se está dentro do período das métricas (com margem)
+      if (isNearPoint) return false // Já será mostrado como ponto vermelho
+      
+      if (minMetricTime > 0) {
+        const isInRange = errorTime >= (minMetricTime - margin) && errorTime <= (maxMetricTime + margin)
+        if (isInRange && typeof window !== 'undefined') {
+          console.log(`[${title}] Error in range (reference line):`, {
+            errorTime: format(errorTimestamp, 'HH:mm:ss'),
+            errorISO: errorTimestamp.toISOString(),
+            metricRange: {
+              min: new Date(minMetricTime - margin).toISOString(),
+              max: new Date(maxMetricTime + margin).toISOString()
+            },
+            count: error.count
+          })
+        }
+        return isInRange
       }
       
-      return !isNearPoint
+      return false
     })
     .map(error => {
       const errorTimestamp = error.timestamp instanceof Date 
