@@ -62,7 +62,11 @@ export function MetricChart({
       
       // Verificar se há erro neste timestamp (dentro de 5 segundos)
       const relatedError = errors.find(error => {
-        const errorTime = error.timestamp.getTime()
+        // Garantir que timestamp seja um Date
+        const errorTimestamp = error.timestamp instanceof Date 
+          ? error.timestamp 
+          : new Date(error.timestamp)
+        const errorTime = errorTimestamp.getTime()
         const timeDiff = Math.abs(itemTimestamp - errorTime) / 1000 // em segundos
         return timeDiff <= 5
       })
@@ -82,17 +86,25 @@ export function MetricChart({
   const errorReferenceLines = errors
     .filter(error => {
       // Verificar se o erro já está próximo de algum ponto de dados
-      const errorTime = error.timestamp.getTime()
+      const errorTimestamp = error.timestamp instanceof Date 
+        ? error.timestamp 
+        : new Date(error.timestamp)
+      const errorTime = errorTimestamp.getTime()
       return !chartData.some(point => {
         const timeDiff = Math.abs(point.timestamp - errorTime) / 1000
         return timeDiff <= 5
       })
     })
-    .map(error => ({
-      time: format(error.timestamp, 'HH:mm:ss'),
-      count: error.count,
-      message: error.errors[0]?.error_message
-    }))
+    .map(error => {
+      const errorTimestamp = error.timestamp instanceof Date 
+        ? error.timestamp 
+        : new Date(error.timestamp)
+      return {
+        time: format(errorTimestamp, 'HH:mm:ss'),
+        count: error.count,
+        message: error.errors[0]?.error_message
+      }
+    })
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">

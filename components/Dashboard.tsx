@@ -21,7 +21,12 @@ export function Dashboard() {
       // Verificar se a resposta tem formato novo (com errors) ou antigo (só metrics)
       if (data.metrics && data.errors) {
         setMetrics(data.metrics)
-        setErrors(data.errors)
+        // Converter timestamps de string para Date
+        const convertedErrors = data.errors.map((error: any) => ({
+          ...error,
+          timestamp: error.timestamp ? new Date(error.timestamp) : new Date()
+        }))
+        setErrors(convertedErrors)
         if (data.metrics.length > 0) {
           setLatestMetric(data.metrics[0])
         }
