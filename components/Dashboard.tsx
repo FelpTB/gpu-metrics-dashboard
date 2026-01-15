@@ -9,6 +9,7 @@ export function Dashboard() {
   const [metrics, setMetrics] = useState<LLMMetrics[]>([])
   const [latestMetric, setLatestMetric] = useState<LLMMetrics | null>(null)
   const [errors, setErrors] = useState<GroupedError[]>([])
+  const [totalRequests, setTotalRequests] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,6 +48,10 @@ export function Dashboard() {
         })))
         
         setErrors(convertedErrors)
+        // Atualizar total de requisições se disponível
+        if (typeof data.totalRequests === 'number') {
+          setTotalRequests(data.totalRequests)
+        }
         if (data.metrics.length > 0) {
           setLatestMetric(data.metrics[0])
         }
@@ -74,6 +79,10 @@ export function Dashboard() {
       const data = await response.json()
       if (data) {
         setLatestMetric(data)
+        // Atualizar total de requisições se disponível
+        if (typeof data.totalRequests === 'number') {
+          setTotalRequests(data.totalRequests)
+        }
         // Adicionar à lista se não existir ou atualizar se for mais recente
         setMetrics(prev => {
           const exists = prev.find(m => m.id === data.id)
@@ -166,6 +175,11 @@ export function Dashboard() {
         <div className="mb-8">
           <h2 className="mb-4 text-2xl font-semibold text-gray-800">Métricas Críticas</h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              title="Requisições Completas"
+              value={totalRequests}
+              description="Total de requisições completas pelo LLM"
+            />
             <MetricCard
               title="KV Cache Usage"
               value={Number(latestMetric.kv_cache_usage_perc)}

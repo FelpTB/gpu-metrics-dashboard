@@ -282,3 +282,36 @@ export function groupErrorsByTime(errors: VLLMError[], timeWindowSeconds: number
   
   return grouped
 }
+
+// Função para contar o número total de linhas na tabela result_vllm_test
+export async function countTotalRequests(): Promise<number> {
+  const client = getPool()
+  try {
+    let result
+    try {
+      result = await client.query(
+        `SELECT COUNT(*) as count 
+         FROM "busca_fornecedor"."result_vllm_test"`
+      )
+    } catch (firstError: any) {
+      console.error('First count query attempt failed:', firstError.message)
+      try {
+        result = await client.query(
+          `SELECT COUNT(*) as count 
+           FROM busca_fornecedor.result_vllm_test`
+        )
+      } catch (secondError: any) {
+        console.error('Second count query attempt failed:', secondError.message)
+        // Retornar 0 se falhar
+        return 0
+      }
+    }
+    
+    const count = result.rows[0]?.count
+    return typeof count === 'string' ? parseInt(count) : Number(count) || 0
+  } catch (error) {
+    console.error('Error counting total requests:', error)
+    // Não lançar erro, apenas retornar 0 se falhar
+    return 0
+  }
+}

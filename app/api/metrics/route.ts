@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchMetricsDirect, fetchLatestMetricDirect, fetchErrorsDirect, groupErrorsByTime } from '@/lib/supabase-direct'
+import { fetchMetricsDirect, fetchLatestMetricDirect, fetchErrorsDirect, groupErrorsByTime, countTotalRequests } from '@/lib/supabase-direct'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -25,7 +25,11 @@ export async function GET(request: Request) {
 
     if (latest) {
       const metric = await fetchLatestMetricDirect()
-      return NextResponse.json(metric)
+      const totalRequests = await countTotalRequests()
+      return NextResponse.json({
+        ...metric,
+        totalRequests
+      })
     }
 
     const metrics = await fetchMetricsDirect(limit)
@@ -33,6 +37,8 @@ export async function GET(request: Request) {
     const errors = await fetchErrorsDirect(1000)
     // Agrupar apenas erros que estão dentro de 5 segundos uns dos outros
     const groupedErrors = groupErrorsByTime(errors, 5)
+    // Contar total de requisições completas
+    const totalRequests = await countTotalRequests()
     
     // Log para debug (apenas em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
@@ -55,7 +61,8 @@ export async function GET(request: Request) {
     
     return NextResponse.json({
       metrics,
-      errors: groupedErrors
+      errors: groupedErrors,
+      totalRequests
     })
   } catch (error) {
     console.error('Error in API route:', error)
