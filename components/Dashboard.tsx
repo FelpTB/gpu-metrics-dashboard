@@ -5,6 +5,7 @@ import { LLMMetrics, GroupedError, GroupedRequestHistory } from '@/lib/supabase-
 import { MetricCard } from './MetricCard'
 import { MetricChart } from './MetricChart'
 import { RequestsHistoryChart } from './RequestsHistoryChart'
+import { RequestsRateChart } from './RequestsRateChart'
 
 export function Dashboard() {
   const [metrics, setMetrics] = useState<LLMMetrics[]>([])
@@ -280,15 +281,22 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Gráfico de Requisições Completas */}
+        {/* Gráficos de Requisições Completas */}
         {requestsHistory.length > 0 && (
           <div className="mb-8">
             <h2 className="mb-4 text-2xl font-semibold text-gray-800">Requisições Completas pelo LLM</h2>
-            <RequestsHistoryChart
-              data={requestsHistory}
-              title="Requisições Completas por Intervalo de Tempo"
-              color="#10b981"
-            />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <RequestsHistoryChart
+                data={requestsHistory}
+                title="Total Acumulado de Requisições"
+                color="#10b981"
+              />
+              <RequestsRateChart
+                data={requestsHistory}
+                title="Taxa de Requisições por Intervalo"
+                color="#3b82f6"
+              />
+            </div>
           </div>
         )}
 
