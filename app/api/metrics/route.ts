@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchMetricsDirect, fetchLatestMetricDirect, fetchErrorsDirect, groupErrorsByTime, countTotalRequests } from '@/lib/supabase-direct'
+import { fetchMetricsDirect, fetchLatestMetricDirect, fetchErrorsDirect, groupErrorsByTime, countTotalRequests, fetchRequestsHistory, groupRequestsByTimeInterval } from '@/lib/supabase-direct'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -39,6 +39,9 @@ export async function GET(request: Request) {
     const groupedErrors = groupErrorsByTime(errors, 5)
     // Contar total de requisições completas
     const totalRequests = await countTotalRequests()
+    // Buscar histórico de requisições e agrupar por intervalo de 30 minutos
+    const requestsHistory = await fetchRequestsHistory(5000)
+    const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 30)
     
     // Log para debug (apenas em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
@@ -57,12 +60,17 @@ export async function GET(request: Request) {
           timestamp: new Date(metrics[0].created_at || '').toISOString()
         })
       }
+      console.log('Requests history:', {
+        total: requestsHistory.length,
+        grouped: groupedRequestsHistory.length
+      })
     }
     
     return NextResponse.json({
       metrics,
       errors: groupedErrors,
-      totalRequests
+      totalRequests,
+      requestsHistory: groupedRequestsHistory
     })
   } catch (error) {
     console.error('Error in API route:', error)

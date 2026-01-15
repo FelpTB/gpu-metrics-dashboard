@@ -1,15 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { LLMMetrics, GroupedError } from '@/lib/supabase-direct'
+import { LLMMetrics, GroupedError, GroupedRequestHistory } from '@/lib/supabase-direct'
 import { MetricCard } from './MetricCard'
 import { MetricChart } from './MetricChart'
+import { RequestsHistoryChart } from './RequestsHistoryChart'
 
 export function Dashboard() {
   const [metrics, setMetrics] = useState<LLMMetrics[]>([])
   const [latestMetric, setLatestMetric] = useState<LLMMetrics | null>(null)
   const [errors, setErrors] = useState<GroupedError[]>([])
   const [totalRequests, setTotalRequests] = useState<number>(0)
+  const [requestsHistory, setRequestsHistory] = useState<GroupedRequestHistory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -51,6 +53,26 @@ export function Dashboard() {
         // Atualizar total de requisições se disponível
         if (typeof data.totalRequests === 'number') {
           setTotalRequests(data.totalRequests)
+        }
+        // Atualizar histórico de requisições se disponível
+        if (data.requestsHistory && Array.isArray(data.requestsHistory)) {
+          // Converter timestamps de string para Date
+          const convertedHistory = data.requestsHistory.map((item: any) => {
+            let timestamp: Date
+            if (item.timestamp) {
+              timestamp = item.timestamp instanceof Date 
+                ? item.timestamp 
+                : new Date(item.timestamp)
+            } else {
+              timestamp = new Date()
+            }
+            
+            return {
+              ...item,
+              timestamp
+            }
+          })
+          setRequestsHistory(convertedHistory)
         }
         if (data.metrics.length > 0) {
           setLatestMetric(data.metrics[0])
@@ -238,6 +260,18 @@ export function Dashboard() {
             />
           </div>
         </div>
+
+        {/* Gráfico de Requisições Completas */}
+        {requestsHistory.length > 0 && (
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-semibold text-gray-800">Requisições Completas pelo LLM</h2>
+            <RequestsHistoryChart
+              data={requestsHistory}
+              title="Requisições Completas por Intervalo de Tempo"
+              color="#10b981"
+            />
+          </div>
+        )}
 
         {/* Gráficos */}
         <div className="mb-8">

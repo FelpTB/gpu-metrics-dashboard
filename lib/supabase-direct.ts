@@ -31,6 +31,19 @@ export interface GroupedError {
   errors: VLLMError[]
 }
 
+export interface RequestHistoryItem {
+  id: number | string
+  created_at: string
+  error: boolean
+  error_message: string | null
+}
+
+export interface GroupedRequestHistory {
+  time: string
+  timestamp: Date
+  count: number
+}
+
 function getPool() {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL
@@ -314,4 +327,107 @@ export async function countTotalRequests(): Promise<number> {
     // Não lançar erro, apenas retornar 0 se falhar
     return 0
   }
+}
+
+// Função para buscar histórico de requisições da tabela result_vllm_test
+export async function fetchRequestsHistory(limit: number = 1000): Promise<RequestHistoryItem[]> {
+  const client = getPool()
+  try {
+    let result
+    try {
+      result = await client.query(
+        `SELECT id, created_at, error, error_message 
+         FROM "busca_fornecedor"."result_vllm_test" 
+         ORDER BY created_at DESC 
+         LIMIT $1`,
+        [limit]
+      )
+    } catch (firstError: any) {
+      console.error('First requests history query attempt failed:', firstError.message)
+      try {
+        result = await client.query(
+          `SELECT id, created_at, error, error_message 
+           FROM busca_fornecedor.result_vllm_test 
+           ORDER BY created_at DESC 
+           LIMIT $1`,
+          [limit]
+        )
+      } catch (secondError: any) {
+        console.error('Second requests history query attempt failed:', secondError.message)
+        // Não lançar erro, apenas retornar array vazio se falhar
+        return []
+      }
+    }
+    
+    return result.rows.map(row => ({
+      id: typeof row.id === 'string' ? parseInt(row.id) : row.id,
+      created_at: row.created_at,
+      error: row.error,
+      error_message: row.error_message
+    })) as RequestHistoryItem[]
+  } catch (error) {
+    console.error('Error fetching requests history:', error)
+    // Não lançar erro, apenas retornar array vazio se falhar
+    return []
+  }
+}
+
+// Função para agrupar requisições por intervalo de tempo (padrão: 1 hora)
+export function groupRequestsByTimeInterval(
+  requests: RequestHistoryItem[], 
+  intervalMinutes: number = 60
+): GroupedRequestHistory[] {
+  if (requests.length === 0) return []
+  
+  // Ordenar por data (mais antigo primeiro)
+  const sortedRequests = [...requests].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
+  
+  const grouped: GroupedRequestHistory[] = []
+  const intervalMs = intervalMinutes * 60 * 1000
+  
+  // Criar grupos baseados em intervalos de tempo
+  let currentGroupStart = new Date(sortedRequests[0].created_at)
+  // Arredondar para o início do intervalo
+  currentGroupStart.setMinutes(Math.floor(currentGroupStart.getMinutes() / intervalMinutes) * intervalMinutes, 0, 0)
+  
+  let currentGroup: RequestHistoryItem[] = []
+  
+  for (const request of sortedRequests) {
+    const requestTime = new Date(request.created_at)
+    const timeDiff = requestTime.getTime() - currentGroupStart.getTime()
+    
+    if (timeDiff >= 0 && timeDiff < intervalMs) {
+      // Adicionar ao grupo atual
+      currentGroup.push(request)
+    } else {
+      // Finalizar grupo atual e começar novo
+      if (currentGroup.length > 0) {
+        const groupTime = formatTime(currentGroupStart)
+        grouped.push({
+          time: groupTime,
+          timestamp: new Date(currentGroupStart),
+          count: currentGroup.length
+        })
+      }
+      
+      // Iniciar novo grupo
+      currentGroupStart = new Date(requestTime)
+      currentGroupStart.setMinutes(Math.floor(currentGroupStart.getMinutes() / intervalMinutes) * intervalMinutes, 0, 0)
+      currentGroup = [request]
+    }
+  }
+  
+  // Adicionar último grupo
+  if (currentGroup.length > 0) {
+    const groupTime = formatTime(currentGroupStart)
+    grouped.push({
+      time: groupTime,
+      timestamp: new Date(currentGroupStart),
+      count: currentGroup.length
+    })
+  }
+  
+  return grouped
 }
