@@ -26,9 +26,13 @@ export async function GET(request: Request) {
     if (latest) {
       const metric = await fetchLatestMetricDirect()
       const totalRequests = await countTotalRequests()
+      // Buscar histórico atualizado de requisições para atualização em tempo real
+      const requestsHistory = await fetchRequestsHistory(10000)
+      const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 10)
       return NextResponse.json({
         ...metric,
-        totalRequests
+        totalRequests,
+        requestsHistory: groupedRequestsHistory
       })
     }
 
@@ -39,9 +43,9 @@ export async function GET(request: Request) {
     const groupedErrors = groupErrorsByTime(errors, 5)
     // Contar total de requisições completas
     const totalRequests = await countTotalRequests()
-    // Buscar histórico de requisições e agrupar por intervalo de 30 minutos
-    const requestsHistory = await fetchRequestsHistory(5000)
-    const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 30)
+    // Buscar histórico de requisições e agrupar por intervalo de 10 minutos para mais granularidade
+    const requestsHistory = await fetchRequestsHistory(10000)
+    const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 10)
     
     // Log para debug (apenas em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {

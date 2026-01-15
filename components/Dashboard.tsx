@@ -105,6 +105,25 @@ export function Dashboard() {
         if (typeof data.totalRequests === 'number') {
           setTotalRequests(data.totalRequests)
         }
+        // Atualizar histórico de requisições se disponível (para atualização em tempo real)
+        if (data.requestsHistory && Array.isArray(data.requestsHistory)) {
+          const convertedHistory = data.requestsHistory.map((item: any) => {
+            let timestamp: Date
+            if (item.timestamp) {
+              timestamp = item.timestamp instanceof Date 
+                ? item.timestamp 
+                : new Date(item.timestamp)
+            } else {
+              timestamp = new Date()
+            }
+            
+            return {
+              ...item,
+              timestamp
+            }
+          })
+          setRequestsHistory(convertedHistory)
+        }
         // Adicionar à lista se não existir ou atualizar se for mais recente
         setMetrics(prev => {
           const exists = prev.find(m => m.id === data.id)
