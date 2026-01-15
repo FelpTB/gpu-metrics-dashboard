@@ -16,7 +16,7 @@ export function RequestsHistoryChart({
   color = '#10b981'
 }: RequestsHistoryChartProps) {
   // Preparar dados do gráfico com linha acumulativa
-  // Converter timestamps para horário local e formatar
+  // Converter timestamps para horário local e formatar com precisão de segundos
   const sortedData = data
     .map(item => {
       // Converter timestamp UTC para horário local
@@ -25,8 +25,8 @@ export function RequestsHistoryChart({
         : new Date(item.timestamp)
       
       return {
-        time: format(timestamp, 'HH:mm'),
-        dateTime: format(timestamp, 'dd/MM/yyyy HH:mm'),
+        time: format(timestamp, 'HH:mm:ss'), // Formato exato como nos outros gráficos
+        dateTime: format(timestamp, 'dd/MM/yyyy HH:mm:ss'),
         count: item.count,
         timestamp: timestamp.getTime()
       }

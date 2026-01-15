@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       const totalRequests = await countTotalRequests()
       // Buscar histórico atualizado de requisições para atualização em tempo real
       const requestsHistory = await fetchRequestsHistory(10000)
-      const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 10)
+      const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 1)
       return NextResponse.json({
         ...metric,
         totalRequests,
@@ -43,9 +43,9 @@ export async function GET(request: Request) {
     const groupedErrors = groupErrorsByTime(errors, 5)
     // Contar total de requisições completas
     const totalRequests = await countTotalRequests()
-    // Buscar histórico de requisições e agrupar por intervalo de 10 minutos para mais granularidade
+    // Buscar histórico de requisições e agrupar por intervalo de 1 minuto para precisão temporal exata
     const requestsHistory = await fetchRequestsHistory(10000)
-    const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 10)
+    const groupedRequestsHistory = groupRequestsByTimeInterval(requestsHistory, 1)
     
     // Log para debug (apenas em desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
